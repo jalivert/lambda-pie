@@ -22,9 +22,7 @@ jobs:
           cabal-version: latest
 
       - name: Install Alex and Happy
-        run: |
-          ghcup install alex 3.5.4.2 --set
-          ghcup install happy 1.20.1.1 --set
+        run: cabal install alex happy --constraint='happy < 2'
 
       - run: cabal update
       - run: cabal build all --enable-tests
