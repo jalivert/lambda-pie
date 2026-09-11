@@ -1,7 +1,8 @@
 module DepParserSpec where
 
 import Test.Hspec
-import System.Exit
+import Data.Either (isRight)
+import Control.Exception (evaluate)
 
 import Dependently.Parser.Parser (parse'expr)
 import Dependently.AST
@@ -41,6 +42,9 @@ spec = describe "Test the parser" $ do
         h = Inf $ free'var "h"
       in
         Inf $ a :@: b :@: c :@: Inf (d :@: e :@: Inf (f :@: g :@: h))
+
+  it "raises on malformed input" $ do
+    evaluate (parse'expr "((lambda x -> x)") `shouldThrow` anyException
 
   it "Parses an annotated term" $ do
     "x :: Foo" <=>
@@ -139,10 +143,8 @@ free'var :: String -> Term'Infer
 free'var name = Free $ Global name
 
 just'parses :: String -> IO ()
-just'parses expr = do
-  case parse'expr expr of
-    Left _ -> return ()
-    Right _ -> return ()
+just'parses expr =
+  parse'expr expr `shouldSatisfy` isRight
 
 
 
@@ -151,5 +153,5 @@ infix 4 <=>
 (<=>) :: String -> Term'Check -> IO ()
 (<=>) expr ast = do
   case parse'expr expr of
-    Left cmd -> exitFailure
+    Left _ -> expectationFailure ("expected a term, got a command: " ++ expr)
     Right ast' -> ast' `shouldBe` ast

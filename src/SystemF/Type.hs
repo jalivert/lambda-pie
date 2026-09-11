@@ -6,7 +6,7 @@ import SystemF.Name ( Name(..) )
 data Type
   = TFree Name
   | Type :-> Type
-  | Forall String Type -- NEW
+  | Forall String Type
   deriving (Eq)
 
 
@@ -15,5 +15,5 @@ instance Show Type where
     = show name
   show (from :-> to)
     = "(" ++ show from ++ " -> " ++ show to ++ ")"
-  show (Forall t'par type') -- NEW
-    = "(forall " ++ t'par ++ " . " ++ show type' ++ ")" -- NEW
+  show (Forall t'par type')
+    = "(forall " ++ t'par ++ " . " ++ show type' ++ ")"

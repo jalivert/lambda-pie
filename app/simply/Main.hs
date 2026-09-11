@@ -1,6 +1,8 @@
 module Main where
 
+import Control.Exception (SomeException, evaluate, try)
 import System.IO
+import Simply.AST (Term'Check)
 import Simply.Parser.Parser (parse'expr)
 import Simply.Eval
 import Simply.TypeChecker
@@ -12,15 +14,6 @@ main :: IO ()
 main = do
   putStrLn "REPL for λ->"
   putStrLn ""
-
-  -- print $ parse'expr "(lambda c -> c)"
-  -- print $ parse'expr "(lambda (c :: Bar) -> c)"
-  -- print $ parse'expr "a (lambda c -> c)"
-  -- print $ parse'expr "a b c (d e (f g h)) (i j) k"
-  -- print $ parse'expr "a :: Foo (\\ x -> x) ((\\ c -> c) :: (B -> B) d e f) g h i j"
-  -- putStrLn ""
-  -- putStrLn $ show $ parse'expr "(lambda (x :: Foo) (y :: Bar) -> x)"
-
   repl []
 
 
@@ -33,28 +26,23 @@ readExpression = do
 
 repl :: Context -> IO ()
 repl context = do
-  -- read
   line <- readExpression
   if line == ":exit"
     then return ()
     else do
-      -- evaluate
-      let command'or'expr = parse'expr line
-      case command'or'expr of
-        Left (Assume assumptions) -> do
-          repl $ assumptions ++ context
-        Right expr -> do
-          -- try to find and print the type
-          case type'of expr context of
-            Left err -> do putStrLn $ "       Type Error: " ++ err
-            Right type' -> do
-              let val = eval expr
-              putStrLn $ "       " ++ show val ++ " :: " ++ show type'
+      parsed <- try (evaluate (parse'expr line)) :: IO (Either SomeException (Either Command Term'Check))
+      case parsed of
+        Left err -> do
+          putStrLn $ "       Parse Error: " ++ show err
           repl context
-
--- assume (Foo :: *) (foo :: Foo)
--- ( ((lambda x -> x) :: Foo -> Foo) foo )
-
--- assume (Bool :: *) (True :: Bool) (False :: Bool)
-
--- (lambda (x :: Foo) (y :: Bar) -> x)
+        Right command'or'expr ->
+          case command'or'expr of
+            Left (Assume assumptions) -> do
+              repl $ assumptions ++ context
+            Right expr -> do
+              case type'of expr context of
+                Left err -> do putStrLn $ "       Type Error: " ++ err
+                Right type' -> do
+                  let val = eval expr
+                  putStrLn $ "       " ++ show val ++ " :: " ++ show type'
+              repl context

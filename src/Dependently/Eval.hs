@@ -7,32 +7,26 @@ import Dependently.Name
 
 
 eval'infer :: Term'Infer -> Val.Env -> Val.Value
-eval'infer Star env
+eval'infer Star _
   = Val.Star
--- WIP
 eval'infer (Pi par in'type out'type) env
   = Val.Pi par (eval'check in'type env) out'type env
--- /WIP
 eval'infer (e ::: _) env
   = eval'check e env
-eval'infer (Bound ind name) env
+eval'infer (Bound ind _) env
   = env !! ind
-eval'infer (Free name) env
-  | Global id <- name = Val.Free id
-  | Local _ id <- name = Val.Free id
+eval'infer (Free name) _
+  | Global str <- name = Val.Free str
+  | Local _ str <- name = Val.Free str
 eval'infer (left :@: right) env
   = val'app (eval'infer left env) (eval'check right env)
--- eval'infer (LamAnn par in'type body) env
---   = Val.Lam par (Inf body) env
 
 
 val'app :: Val.Value -> Val.Value -> Val.Value
 val'app (Val.Lam _ body env) arg
   = eval'check body (arg : env)
--- WIP
-val'app (Val.Pi _ in'type out'type env) arg
+val'app (Val.Pi _ _ out'type env) arg
   = eval'check out'type (arg : env)
--- /WIP
 val'app left right
   = Val.App left right
 

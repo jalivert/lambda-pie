@@ -21,7 +21,7 @@ instance Show Term'Infer where
     = name ++ show ind
   show (Free name)
     = show name
-  show (left :@: r@(Inf (r'l :@: r'r)))
+  show (left :@: r@(Inf (_ :@: _)))
     = show left ++ " (" ++ show r ++ ")"
   show (left :@: right)
     = show left ++ " " ++ show right

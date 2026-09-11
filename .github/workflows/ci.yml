@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    name: GHC ${{ matrix.ghc }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ghc: ['9.8.4', '9.10.1', '9.12.2']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: haskell-actions/setup@v2
+        with:
+          ghc-version: ${{ matrix.ghc }}
+          cabal-version: latest
+
+      - name: Install Alex and Happy
+        run: |
+          ghcup install alex --set
+          ghcup install happy --set
+
+      - run: cabal update
+      - run: cabal build all --enable-tests
+      - run: cabal test all

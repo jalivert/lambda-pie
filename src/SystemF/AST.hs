@@ -7,12 +7,11 @@ import SystemF.Name ( Name )
 -- Inferable Term
 data Term'Infer
   = Term'Check ::: Type
-  -- | Type Type -- NEW
   | Bound Int String
   | Free Name
   | Term'Infer :@: Term'Check
-  | Term'Infer :$: Type -- NEW
-  | TyLam String Term'Infer -- NEW
+  | Term'Infer :$: Type
+  | TyLam String Term'Infer
   | LamAnn String Type Term'Infer
   deriving (Eq)
 
@@ -20,20 +19,18 @@ data Term'Infer
 instance Show Term'Infer where
   show (term ::: type')
     = show term ++ " :: " ++ show type'
-  -- show (Type type') -- NEW
-    -- = "[" ++ show type' ++ "]" -- NEW
   show (Bound ind name)
     = name ++ show ind
   show (Free name)
     = show name
-  show (left :@: r@(Inf (r'l :@: r'r)))
+  show (left :@: r@(Inf (_ :@: _)))
     = show left ++ " (" ++ show r ++ ")"
   show (left :@: right)
     = show left ++ " " ++ show right
-  show (left :$: t'right) -- NEW
-    = "(" ++ show left ++ " " ++ show t'right ++ ")" -- NEW
-  show (TyLam t'par body) -- NEW
-    = "(Λ " ++ t'par ++ " . " ++ show body ++ ")" -- NEW
+  show (left :$: t'right)
+    = "(" ++ show left ++ " " ++ show t'right ++ ")"
+  show (TyLam t'par body)
+    = "(Λ " ++ t'par ++ " . " ++ show body ++ ")"
   show (LamAnn par in'type body)
     = "(λ " ++ par ++ " :: " ++ show in'type ++ " -> " ++ show body ++ ")"
 

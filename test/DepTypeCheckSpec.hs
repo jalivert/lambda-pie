@@ -2,7 +2,7 @@ module DepTypeCheckSpec where
 
 
 import Test.Hspec
-import System.Exit
+import Data.Either (isLeft)
 import Data.Bifunctor (bimap)
 
 import Dependently.Parser.Parser (parse'expr)
@@ -49,6 +49,15 @@ spec = describe "Test typechecking" $ do
   it "(lambda t x -> x :: T) :: (forall t :: T . (forall x :: T . T))" $ do
     type'checks (to'context [("T", "*")]) "(lambda t x -> x :: T) :: (forall t :: T . (forall x :: T . T))"
 
+  it "rejects (lambda x -> x) :: (forall (t :: Bool) . Bool) with Bool unknown" $ do
+    type'rejects [] "(lambda x -> x) :: (forall (t :: Bool) . Bool)"
+
+  it "rejects an unbound variable in the body" $ do
+    type'rejects [] "(lambda x -> y) :: (forall (x :: *) . *)"
+
+  it "rejects a mismatched annotation" $ do
+    type'rejects [] "(lambda x -> x) :: (forall (x :: *) . (forall (y :: x) . x))"
+
 
 
 
@@ -72,7 +81,15 @@ to'type str
 type'checks :: Context -> String -> IO ()
 type'checks context expr = do
   case parse'expr expr of
+    Left _ -> expectationFailure ("expected a term, got a command: " ++ expr)
     Right ast ->
       case type'of ast context of
-            Left err -> exitFailure
-            Right type' -> return ()
+        Left err -> expectationFailure ("expected no type error, got: " ++ err)
+        Right _ -> return ()
+
+
+type'rejects :: Context -> String -> IO ()
+type'rejects context expr = do
+  case parse'expr expr of
+    Left _ -> expectationFailure ("expected a term, got a command: " ++ expr)
+    Right ast -> type'of ast context `shouldSatisfy` isLeft

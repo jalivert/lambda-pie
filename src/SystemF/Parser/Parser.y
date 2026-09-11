@@ -24,7 +24,6 @@ import SystemF.Type
 %error { parseError }
 %monad { P }
 %lexer { lexer } { Tok.EOF }
--- %expect 0
 
 
 %token
@@ -59,7 +58,6 @@ TypedParam      ::  { (String, Type) }
 
 TermInfer       ::  { Term'Infer }
                 :   var                                             { Free $ Global $1 }
---                |   '(' TermInfer TermCheck ')'                     { $2 :@: $3 }
                 |   AppLeft OneOrMany(AppRight)                     { foldl
                                                                         (\ l r -> case r of
                                                                           { Left t -> l :$: t

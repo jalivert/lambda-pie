@@ -1,11 +1,8 @@
 module Simply.Parser.Utils where
 
 import Control.Monad.State
-import Control.Monad
 import Data.Word
 import Codec.Binary.UTF8.String (encode)
-
-import Simply.Parser.Token (Token (..))
 
 
 -- Parser monad
@@ -57,13 +54,17 @@ alexGetByte ai =
             n' = if char == '\n' then n + 1 else n
             c = ai'column'number ai
             c' = if char == '\n' then 1 else c + 1
-            (b : bs) = encode [char]
-          in
-            Just (b, AlexInput  { ai'prev = char
-                                , ai'bytes = bs
-                                , ai'rest = chars
-                                , ai'line'number = n'
-                                , ai'column'number = c' })
+            advance b bs =
+              Just (b, AlexInput  { ai'prev = char
+                                  , ai'bytes = bs
+                                  , ai'rest = chars
+                                  , ai'line'number = n'
+                                  , ai'column'number = c' })
+          -- The UTF-8 encoding of a single Char is never empty;
+          -- the fallback only keeps the match total.
+          in case encode [char] of
+            (b : bs) -> advance b bs
+            [] -> Nothing
 
 
 getLineNo :: P Int

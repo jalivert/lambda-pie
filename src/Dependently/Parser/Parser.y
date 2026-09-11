@@ -23,7 +23,6 @@ import Dependently.Context
 %error { parseError }
 %monad { P }
 %lexer { lexer } { Tok.EOF }
--- %expect 0
 
 
 %token
@@ -99,7 +98,6 @@ Term            ::  { Term'Check }
                 |   '(' App ')'                                     { Inf $2 }
                 |   Lambda                                          { $1 }
                 |   '(' Term ')'                                    { $2 }
-                -- |   TypedLambda                                     { Inf $1 }
 
 
 Type            ::  { Term'Check }
@@ -125,13 +123,6 @@ Lambda          ::  { Term'Check }
                                                                      (\ arg body -> Lam arg body)
                                                                      $5
                                                                      $3 }
-
-
--- TypedLambda     ::  { Term'Infer }
---                 :   '(' lambda TypedParams '->' TermInfer ')'          { fix $ foldr
---                                                                         (\ (par, type') body -> LamAnn par type' body)
---                                                                         $5
---                                                                         $3 }
 
 
 Command         ::  { Command }
@@ -182,12 +173,10 @@ fix'infer (term ::: type') context
   = (fix'check term context) ::: (fix'check type' context)
 fix'infer Star _
   = Star
+-- The domain of a Pi cannot mention the bound parameter, so only the
+-- codomain is resolved with the parameter in scope.
 fix'infer (Pi par in'type out'type) context
  = Pi par (fix'check in'type context) (fix'check out'type (par : context))
- --       ^^^ because the in'type of the Pi can not depend on the parameter
- -- it is not needed to fix the in'type with the context containing also current parameter
- -- then (forall x :: (f x) . ...)
- -- will mean, that x ^^^^^ must be bound by some other - upper level Pi binder 
 fix'infer (Bound i n) _
   = Bound i n
 fix'infer (Free (Global name)) context
@@ -196,8 +185,6 @@ fix'infer (Free (Global name)) context
       Nothing -> Free (Global name)
 fix'infer (left :@: right) context
   = (fix'infer left context) :@: (fix'check right context)
--- fix'infer (LamAnn par type' body) context
---   = LamAnn par type' $ fix'infer body (par : context)
 
 
 parseError _ = do
@@ -211,80 +198,3 @@ parse'expr :: String -> Either Command Term'Check
 parse'expr s =
   evalP parserAct s
 }
-
-
--- TermCheck       ::  { Term'Check }
---                 :   TermInfer                                       { Inf $1 }
---                 |   Lambda                                          { $1 }
---                 |   '(' TermCheck ')'                               { $2 }
---                 |   TermCheck3 '::' TermType                        { Inf ($1 ::: $3) }
---                 -- |   TermCheck2                                      { $1 }
-
-
--- TermType        ::  { Term'Check }
---                 :   TermInfer3                                      { Inf $1 }
---                 |   '(' TermType ')'                                { $2 }
---                 |   AppLeft OneOrMany(AppRight)                     { Inf $ foldl (:@:) $1 $2 }
---                 |   Lambda                                          { $1 }
-
-
--- TermCheck3      ::  { Term'Check }
---                 :   Lambda                                          { $1 }
---                 |   '(' TermCheck3 ')'                              { $2 }
-
-
--- TermCheck2      ::  { Term'Check }
---                 :   Lambda                                          { $1 }
---                 |   '(' TermCheck ')'                               { $2 }
-
-
--- TermInfer       ::  { Term'Infer }
---                 :   AppLeft '::' TermType                           { Inf $1 ::: $3 }
---                 -- Tohle neni OK, protoze bych tak mohl generovat
---                 -- (AppLeft :: TermType) :: TermType tohle mi nevadi
---                 -- takze to JE OK
--- 
---                 -- |   AppLeft '::' TermType OneOrMany(AppRight)       { foldl (:@:) (Inf $1 ::: $3) $4 }
---                 -- Tohle zakazuju ^^^ kvuli a :: Foo b c d -- co to je? kam patri b c d ? do typu?
--- 
---                 -- |   '(' AppLeft '::' TermType ')' OneOrMany(AppRight)       { foldl (:@:) (Inf $2 ::: $4) $6 }
---                 -- Tohle komentuju jenom jako pokus ^^^ budu to chtit umet parsovat
---                 -- uz to umim -> kvuli prvnimu pravidlu
--- 
---                 |   AppLeft OneOrMany(AppRight)                     { foldl (:@:) $1 $2 }
---                 |   AppLeft OneOrMany(AppRight) '::' TermType       { Inf (foldl (:@:) $1 $2) ::: $4 }
--- 
---                 |   '(' TermCheck3 '::' TermType ')' OneOrMany(AppRight)       { foldl (:@:) ($2 ::: $4) $6 }
--- 
---                 -- |   TermCheck3 '::' TermType OneOrMany(AppRight)    { foldl (:@:) ($1 ::: $3) $4 }
---                 -- |   '(' TermCheck3 '::' TermType ')' OneOrMany(AppRight)    { foldl (:@:) ($2 ::: $4) $6 }
---                 -- Tohle komentuju jenom jako pokus ^^^ budu to chtit umet parsovat
--- 
---                 |   TermInfer2                                      { $1 }
--- 
---                 -- Co zkusit NoneOrMany(AppRight) :: TermType a pak udelat v Haskellu if
-
-
--- TermInfer2      ::  { Term'Infer }
---                 :   '(' TermInfer ')' {- %shift -}                  { $2 }
---                 |   TermInfer3                                      { $1 }
-
-
--- TermInfer3      ::  { Term'Infer }
---                 :   '*'                                             { Star }
---                 |   Forall                                          { $1 }
---                 |   var                                             { Free $ Global $1 }
---                 |   '(' lambda TypedParams '->' TermInfer ')'       { fix $ foldr
---                                                                        (\ (par, type') body -> LamAnn par type' body)
---                                                                        $5
---                                                                        $3 }
-
-
--- AppLeft         ::  { Term'Infer }
---                 :   TermInfer2                                      { $1 }
--- 
--- 
--- AppRight        ::  { Term'Check }
---                 :   TermInfer2                                      { Inf $1 }
---                 |   TermCheck2                                      { $1 }
--- 

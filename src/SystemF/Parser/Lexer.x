@@ -85,7 +85,7 @@ readToken = do
       readToken
     
     AlexToken inp' n act -> do
-      let (AlexInput{ ai'rest = buf }) = input s -- TODO: rename airest
+      let buf = ai'rest (input s)
       put s{ input = inp' }
       res <- act n (take n buf)
       case res of

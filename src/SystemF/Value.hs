@@ -9,17 +9,17 @@ type Env = [Value]
 
 data Value
   = Lam String Term'Check Env
-  | TyLam String Term'Infer Env -- NEW
+  | TyLam String Term'Infer Env
   | Free String
   | App Value Value
-  | TyApp Value Type -- NEW -- second Value is only ever be TypeArg
+  | TyApp Value Type
 
 
 instance Show Value where
   show (Lam _ _ _)
     = "<lambda>"
-  show (TyLam _ _ _) -- NEW
-    = "<type lambda>" -- NEW
+  show (TyLam _ _ _)
+    = "<type lambda>"
   show (Free name)
     = name
   show (App left right)

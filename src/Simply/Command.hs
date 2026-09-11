@@ -12,4 +12,4 @@ instance Show Command where
     = "assume " ++ shw lst
       where
         shw [] = ""
-        shw ((name, info) : rest) = "(" ++ show name ++ " :: " ++ show info ++ ")"
+        shw ((name, info) : rest) = "(" ++ show name ++ " :: " ++ show info ++ ")" ++ shw rest

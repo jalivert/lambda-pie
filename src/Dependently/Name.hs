@@ -10,5 +10,5 @@ data Name
 instance Show Name where
   show (Global name)
     = name
-  show (Local ind name)
-    = name -- ++ show ind
+  show (Local _ name)
+    = name

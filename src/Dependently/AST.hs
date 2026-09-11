@@ -11,7 +11,6 @@ data Term'Infer
   | Bound Int String
   | Free Name
   | Term'Infer :@: Term'Check
-  -- | LamAnn String Term'Check Term'Infer
   deriving (Eq)
 
 
@@ -20,19 +19,16 @@ instance Show Term'Infer where
     = show term ++ " :: " ++ show type'
   show Star
     = "*"
-  -- show (Pi )
   show (Pi par in'type out'type)
     = "(Π " ++ par ++ " :: " ++ show in'type ++ " . " ++ show out'type ++ ")"
-  show (Bound ind name)
-    = name -- ++ show ind
+  show (Bound _ name)
+    = name
   show (Free name)
     = show name
-  show (left :@: r@(Inf (r'l :@: r'r)))
+  show (left :@: r@(Inf (_ :@: _)))
     = show left ++ " (" ++ show r ++ ")"
   show (left :@: right)
     = show left ++ " " ++ show right
-  -- show (LamAnn par in'type body)
-  --   = "(λ " ++ par ++ " :: " ++ show in'type ++ " -> " ++ show body ++ ")"
 
 
 -- Checkable Term

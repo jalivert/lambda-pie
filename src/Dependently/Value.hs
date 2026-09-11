@@ -13,7 +13,7 @@ data Value
   | Free String
   | App Value Value
 
--- TODO: WIP
+
 instance Show Value where
   show Star
     = "*"

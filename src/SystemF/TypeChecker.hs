@@ -39,7 +39,7 @@ type'infer level context (e ::: type') = do
   kind'check context type' Star
   type'check level context e type'
   return type'
-type'infer level context (Free name) = do
+type'infer _ context (Free name) = do
   case lookup name context of
     Just (HasType type') -> return type'
     Just _ -> throwError $ "Type error for " ++ show name ++ "."
@@ -51,21 +51,24 @@ type'infer level context (left :@: right) = do
       type'check level context right in't
       return out't
     _ -> throwError "Type error: illegal application."
-type'infer level context (TyLam t'par body) = do -- NEW
-  body't <- type'infer level ((Global t'par, HasKind Star) : context) body -- NEW
-  return $ Forall t'par body't -- NEW
-type'infer level context (left :$: t'right) = do -- NEW
-  kind'check context t'right Star -- NEW
-  left't <- type'infer level context left -- NEW
-  case left't of -- NEW
-    Forall t'par out'type -> do -- NEW
+type'infer level context (TyLam t'par body) = do
+  body't <- type'infer level ((Global t'par, HasKind Star) : context) body
+  return $ Forall t'par body't
+type'infer level context (left :$: t'right) = do
+  kind'check context t'right Star
+  left't <- type'infer level context left
+  case left't of
+    Forall t'par out'type -> do
       let res'type = subst'type out'type t'par t'right
-      return res'type -- NEW
-    _ -> throwError "Type error: illegal type application." -- NEW
+      return res'type
+    _ -> throwError "Type error: illegal type application."
 type'infer level context (LamAnn par in'type body) = do
+  kind'check context in'type Star
   out'type <- type'infer (level + 1) ((Local level par, HasType in'type) : context)
                 (subst'infer 0 (Free (Local level par)) body)
   return $ in'type :-> out'type
+type'infer _ _ _ =
+  throwError "Type error: cannot infer the type of this term."
 
 
 type'check :: Int -> Context -> Term'Check -> Type -> Result ()
@@ -84,22 +87,22 @@ class Typeable a where
 
 
 instance Typeable Term'Infer where
-  type'of ann@(expr ::: type') context
+  type'of ann@(_ ::: _) context
     = type'infer'0 context ann
-  type'of (Free _) context
-    = Right $ TFree $ Global "*" -- kinda ugly and horrible, but get the message delivered
-  type'of app@(left :@: right) context
+  type'of app@(_ :@: _) context
     = type'infer'0 context app
-  type'of t'app@(left :$: right) context  -- NEW
-    = type'infer'0 context t'app -- NEW
-  type'of t'lam@(TyLam t'par body) context -- NEW
-    = type'infer'0 context t'lam -- NEW
-  type'of lam@(LamAnn name in'type body) context
+  type'of t'app@(_ :$: _) context
+    = type'infer'0 context t'app
+  type'of t'lam@(TyLam _ _) context
+    = type'infer'0 context t'lam
+  type'of lam@(LamAnn _ _ _) context
     = type'infer'0 context lam
+  type'of other context
+    = type'infer'0 context other
 
 
 instance Typeable Term'Check where
   type'of (Inf expr) context
     = type'of expr context
-  type'of (Lam par body) context
+  type'of (Lam _ _) _
     = Left "Can't infer a type of an unannotated λ."

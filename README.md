@@ -1,48 +1,47 @@
 # lambda-pie
 
-Implementation of the simply typed lambda calculus λ->, System F λ2, and dependently typed λ-calculus λΠ.
+[![CI](https://github.com/jalivert/lambda-pie/actions/workflows/ci.yml/badge.svg)](https://github.com/jalivert/lambda-pie/actions/workflows/ci.yml)
 
-### How to Use
+Simply typed lambda calculus λ→, System F λ2, and dependently typed λ-calculus λΠ —
+each with a parser and an interactive REPL that typechecks and evaluates as you type.
 
-#### Compile
 
-```
-stack build
-```
+## Prerequisites
 
-#### Run
+- GHC (CI covers 9.8, 9.10, 9.12)
+- `cabal-install`
+- `alex` and `happy` (lexer/parser generators, pulled in via `build-tool-depends`)
 
-```
-stack run simply
-```
-
-or
+## Build
 
 ```
-stack run dependently
+cabal build all
 ```
 
-or
+## Test
 
 ```
-stack run systemf
+cabal test all
 ```
 
-#### Typing in the REPLs
-- λ is typed as `λ` or `\` or `lambda`
-- Λ is typed as `/\`
-- type arguments in the System F are wrapped in the brackets like: `[Nat]`
-- to introduce either a type or a term of certain type to the system you use `assume` like: `assume Bool :: *`
+## Run
 
-### Simply Typed Lambda Calculus (λ->)
+There is one REPL per calculus:
 
-#### Declare Types of variables
+```
+cabal run simply
+cabal run systemf
+cabal run dependently
+```
 
-To declare that some identifier has a type T you simply `assume ident :: T`.
+Type `:exit` to quit a REPL. Typing in the REPLs:
 
-You then need to declare that type `T` is of kind `*` as `assume T :: *`.
+- `λ` is typed as `λ`, `\`, or `lambda`
+- `Λ` is typed as `/\`
+- type arguments in System F are wrapped in brackets, e.g. `[Nat]`
+- `assume` introduces a type or a term, e.g. `assume Bool :: *`
 
-Example with identity function:
+### Simply typed lambda calculus (λ→)
 
 ```
 λ-> >> assume (id :: T -> T) (T :: *) (a :: T) (b :: T)
@@ -52,10 +51,9 @@ Example with identity function:
        (id b) :: T
 ```
 
-### System F
-```
-REPL for λ2
+### System F (λ2)
 
+```
 λ2 >> (/\ T . (\ (t :: T) -> t))
        <type lambda> :: (forall T . (T -> T))
 ```
@@ -67,13 +65,17 @@ REPL for λ2
       ((pickone fst) snd) :: (forall T . (T -> (T -> T)))
 ```
 
-<!--
-assume (Nat :: *) (fst :: forall T . T -> T -> T) (snd :: forall T . T -> T -> T)
-assume bul :: (forall T . T -> T -> T) -> (forall T . T -> T -> T) -> (forall T . T -> T -> T)
+### Dependently typed lambda calculus (λΠ)
 
-fst = (/\ T . (\ (f :: T) (s :: T) -> f)) :: forall T . T -> T -> T
-snd = (/\ T . (\ (f :: T) (s :: T) -> f))
-(\ (b :: T) -> b  ) ((\ a b -> a ) :: (forall T . T -> T -> T) -> (forall T . T -> T -> T) -> (forall T . T -> T -> T)) [Nat]
+```
+λΠ >> (lambda t x -> x) :: (forall (t :: *) . (forall (x :: t) . t))
+       (λ t -> (λ x -> x)) :: (Π t :: * . (Π x :: t . t))
+```
 
-:: (forall T . T -> T -> T) -> (forall T . T -> T -> T) -> (forall T . T -> T -> T)
--->
+## Project layout
+
+```
+app/          REPL entry points (simply, systemf, dependently)
+src/          one module tree per calculus: Simply, SystemF, Dependently
+test/         hspec suite (cabal test all)
+```

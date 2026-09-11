@@ -24,7 +24,6 @@ import Simply.Type
 %error { parseError }
 %monad { P }
 %lexer { lexer } { Tok.EOF }
--- %expect 0
 
 
 %token
@@ -54,7 +53,6 @@ TypedParam      ::  { (String, Type) }
 
 TermInfer       ::  { Term'Infer }
                 :   var                                             { Free $ Global $1 }
---                |   '(' TermInfer TermCheck ')'                     { $2 :@: $3 }
                 |   AppLeft OneOrMany(AppRight)                     { foldl (:@:) $1 $2 }
                 |   '(' TermCheck '::' Type ')'                     { $2 ::: $4 }
                 |   TermCheck '::' Type                             { $1 ::: $3 }
