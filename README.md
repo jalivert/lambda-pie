@@ -5,6 +5,9 @@
 Simply typed lambda calculus λ→, System F λ2, and dependently typed λ-calculus λΠ —
 each with a parser and an interactive REPL that typechecks and evaluates as you type.
 
+## Background
+
+This project is a version of the implementation described in [A Tutorial Implementation of a Dependently Typed Lambda Calculus](https://www.andres-loeh.de/LambdaPi/LambdaPi.pdf) by Löh, McBride, and Swierstra. The dependently typed core (λΠ) follows the paper's bidirectional Haskell implementation — terms split into inferable and checkable, evaluation by environments with closures — and the simply typed (λ→) and System F (λ2) checkers reuse that same architecture with their own type languages. Each calculus additionally gets a concrete parser and an interactive REPL on top of the core.
 
 ## Prerequisites
 
