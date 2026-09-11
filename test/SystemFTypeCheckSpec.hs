@@ -1,7 +1,7 @@
 module SystemFTypeCheckSpec where
 
 import Test.Hspec
-import Data.Either (isLeft)
+import Data.Either (isLeft, isRight)
 
 import SystemF.Parser.Parser (parse'expr)
 import SystemF.TypeChecker (type'of)
@@ -45,6 +45,10 @@ spec = describe "System F typechecker" $ do
         "(\\ (x :: Nat) -> x)"
         (tVar "Nat" :-> tVar "Nat")
 
+    it "accepts an alpha-renamed type abstraction" $ do
+      type'accepts testContext
+        "((/\\ U . (\\ (u :: U) -> u)) :: (forall T . (T -> T)))"
+
   describe "rejects ill-typed terms" $ do
     it "(\\ (x :: Nat) -> x) with Nat unknown" $ do
       type'rejects [] "(\\ (x :: Nat) -> x)"
@@ -74,3 +78,10 @@ type'rejects context expr =
   case parse'expr expr of
     Left _ -> expectationFailure ("expected a term, got a command: " ++ expr)
     Right ast -> type'of ast context `shouldSatisfy` isLeft
+
+
+type'accepts :: Context -> String -> IO ()
+type'accepts context expr =
+  case parse'expr expr of
+    Left _ -> expectationFailure ("expected a term, got a command: " ++ expr)
+    Right ast -> type'of ast context `shouldSatisfy` isRight

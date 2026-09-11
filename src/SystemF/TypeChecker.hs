@@ -1,6 +1,8 @@
 module SystemF.TypeChecker where
 
 import Control.Monad
+import Data.List (find)
+import Data.Maybe (fromMaybe)
 
 import SystemF.Context
 import SystemF.Kind
@@ -71,10 +73,34 @@ type'infer _ _ _ =
   throwError "Type error: cannot infer the type of this term."
 
 
+-- Types compare up to alpha-equivalence: 'Forall' binder names are
+-- insignificant, so both sides are renamed to a common fresh variable
+-- before comparing structurally.
+eqType :: Type -> Type -> Bool
+eqType (TFree a) (TFree b) = a == b
+eqType (l1 :-> r1) (l2 :-> r2) = eqType l1 l2 && eqType r1 r2
+eqType (Forall a l) (Forall b r) =
+  let fresh = freshName (typeNames l ++ typeNames r)
+  in eqType (subst'type l a (TFree (Global fresh)))
+            (subst'type r b (TFree (Global fresh)))
+eqType _ _ = False
+
+-- Every name occurring in a type, bound or free: the fresh renaming
+-- variable must avoid all of them so substitution cannot capture.
+typeNames :: Type -> [String]
+typeNames (TFree (Global n)) = [n]
+typeNames (TFree (Local _ _)) = []
+typeNames (l :-> r) = typeNames l ++ typeNames r
+typeNames (Forall _ t) = typeNames t
+
+freshName :: [String] -> String
+freshName taken = fromMaybe "t" (find (`notElem` taken) candidates)
+  where candidates = "t" : ["t" ++ show (i :: Int) | i <- [1..]]
+
 type'check :: Int -> Context -> Term'Check -> Type -> Result ()
 type'check level context (Inf e) type' = do
   e't <- type'infer level context e
-  unless (type' == e't) (throwError "Type mismatch.")
+  unless (eqType type' e't) (throwError "Type mismatch.")
 type'check level context (Lam par body) (in't :-> out't) = do
   type'check (level + 1) ((Local level par, HasType in't) : context)
             (subst'check 0 (Free (Local level par)) body) out't

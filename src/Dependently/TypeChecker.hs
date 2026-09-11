@@ -60,36 +60,38 @@ type'check level context (Inf e) type' = do
   e't <- type'infer level context e
   unless (type' == e't) (throwError $ "Type mismatch. type' = " ++ show type' ++ "  /= " ++ show e't ++ "\ncontext= " ++ show context)
 
-type'check level context (Lam par body) pi't@(Val.Pi param in'type _ _) = do
+-- The expected type applies the Pi closure to the very same fresh
+-- variable that was substituted into the body above (as in the paper),
+-- never to the Pi's own binder name: binder names are insignificant.
+type'check level context (Lam par body) pi't@(Val.Pi _ in'type _ _) = do
     type'check  (level + 1)
                 ((Local level par, in'type) : context)
                 (subst'check 0 (Free (Local level par)) body)
-                (val'app pi't (Val.Free param))
+                (val'app pi't (Val.Free (Local level par)))
 type'check _ _ _ _ =
   throwError "Type mismatch. Incorrect shape."
 
 
--- Values compare structurally; closures (Pi/Lam) compare by evaluating
--- their bodies in the captured environments first, so that leftover
--- environment bindings do not affect the result.
+-- Values compare up to alpha-equivalence. Binder names are insignificant:
+-- closure bodies use de Bruijn indices, so bodies in equal environments
+-- compare alpha-insensitively regardless of the bound names.
+-- Closure bodies are open terms (index 0 is the closure's own binder),
+-- so both sides are evaluated with their environments extended by one
+-- shared fresh variable; leftover environment bindings beyond that do
+-- not affect the result.
+freshVar :: Val.Value
+freshVar = Val.Free (Global "")
+
 instance Eq Val.Value where
   (==) Val.Star Val.Star = True
-  (==) (Val.Pi l'par l'in'type l'body l'env) (Val.Pi r'par r'in'type r'body r'env)
-    | l'par == r'par && l'in'type == r'in'type
-      = let
-          l'val = eval'check l'body l'env
-          r'val = eval'check r'body r'env
-        in
-          l'val == r'val
+  (==) (Val.Pi _ l'in'type l'body l'env) (Val.Pi _ r'in'type r'body r'env)
+    | l'in'type == r'in'type
+      = eval'check l'body (freshVar : l'env)
+        == eval'check r'body (freshVar : r'env)
     | otherwise = False
-  (==) (Val.Lam l'par l'body l'env) (Val.Lam r'par r'body r'env)
-    | l'par == r'par
-      = let
-          l'val = eval'check l'body l'env
-          r'val = eval'check r'body r'env
-        in
-          l'val == r'val
-    | otherwise = False
+  (==) (Val.Lam _ l'body l'env) (Val.Lam _ r'body r'env)
+    = eval'check l'body (freshVar : l'env)
+      == eval'check r'body (freshVar : r'env)
 
   (==) (Val.Free l'id) (Val.Free r'id)
     = l'id == r'id

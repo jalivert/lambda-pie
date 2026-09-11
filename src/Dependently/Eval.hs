@@ -3,7 +3,6 @@ module Dependently.Eval where
 
 import Dependently.AST (Term'Infer(..), Term'Check(..))
 import qualified Dependently.Value as Val
-import Dependently.Name
 
 
 eval'infer :: Term'Infer -> Val.Env -> Val.Value
@@ -16,8 +15,7 @@ eval'infer (e ::: _) env
 eval'infer (Bound ind _) env
   = env !! ind
 eval'infer (Free name) _
-  | Global str <- name = Val.Free str
-  | Local _ str <- name = Val.Free str
+  = Val.Free name
 eval'infer (left :@: right) env
   = val'app (eval'infer left env) (eval'check right env)
 

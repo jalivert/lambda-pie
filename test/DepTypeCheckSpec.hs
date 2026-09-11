@@ -2,8 +2,10 @@ module DepTypeCheckSpec where
 
 
 import Test.Hspec
-import Data.Either (isLeft)
-import Data.Bifunctor (bimap)
+import Data.Either (isLeft, isRight)
+import Data.Bifunctor (bimap, second)
+
+import Dependently.Command (Command (..))
 
 import Dependently.Parser.Parser (parse'expr)
 import Dependently.AST
@@ -58,6 +60,15 @@ spec = describe "Test typechecking" $ do
   it "rejects a mismatched annotation" $ do
     type'rejects [] "(lambda x -> x) :: (forall (x :: *) . (forall (y :: x) . x))"
 
+  it "accepts an alpha-renamed dependent application" $ do
+    ctx <- assume'context "assume (T :: *) (P :: forall (u :: T) . *) (g :: forall (u :: T) . T) (h :: forall (u :: T) . (P (g u)))"
+    type'accepts ctx "(lambda t -> (h t)) :: (forall (t :: T) . (P (g t)))"
+    type'accepts ctx "(lambda a -> (h a)) :: (forall (t :: T) . (P (g t)))"
+
+  it "accepts an alpha-renamed Pi ascription" $ do
+    ctx <- assume'context "assume (T :: *) (P :: forall (u :: T) . *) (g :: forall (u :: T) . T) (h :: forall (u :: T) . (P (g u)))"
+    type'accepts ctx "h :: (forall (v :: T) . (P (g v)))"
+
 
 
 
@@ -93,3 +104,17 @@ type'rejects context expr = do
   case parse'expr expr of
     Left _ -> expectationFailure ("expected a term, got a command: " ++ expr)
     Right ast -> type'of ast context `shouldSatisfy` isLeft
+
+
+type'accepts :: Context -> String -> IO ()
+type'accepts context expr = do
+  case parse'expr expr of
+    Left _ -> expectationFailure ("expected a term, got a command: " ++ expr)
+    Right ast -> type'of ast context `shouldSatisfy` isRight
+
+
+assume'context :: String -> IO Context
+assume'context s = do
+  case parse'expr s of
+    Left (Assume as) -> return (map (second eval) as)
+    Right _ -> expectationFailure ("expected an assume, got a term: " ++ s) >> return []
